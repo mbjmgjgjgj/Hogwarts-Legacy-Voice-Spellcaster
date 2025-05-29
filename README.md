@@ -161,6 +161,7 @@ PLAYER_GENDER = "Female" # По умолчанию
 * Редукто
 * Ревелио
 * Протего
+* Алахомора
 
 #### ⌨️ Настройка файла `Keyboard_SPELLS_KEYS.py`
 * `Settings/HogwartsLegacy/Keyboard_SPELLS_KEYS.py`
