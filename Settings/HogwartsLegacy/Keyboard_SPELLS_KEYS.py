@@ -8,6 +8,7 @@ SPELLS_KEYS = {
     "Редукто":(["F5"],0.05, "NO_ADDITIONAL_SETTINGS", True),
     "Ревелио":(["r"],0.05, "NO_ADDITIONAL_SETTINGS", True),
     "Протего":(["q"],0.05, "NO_ADDITIONAL_SETTINGS", True),
+    "Алохомора":(["f"],0.05, "NO_ADDITIONAL_SETTINGS", True),
 
 
     # Заклинаниия группы 1 (Активатор-Кнопка 5)
@@ -41,6 +42,5 @@ SPELLS_KEYS = {
     
     "Авада Кедавра":([],0.05, "NO_ADDITIONAL_SETTINGS", True),
     "Круцио":([],0.05, "NO_ADDITIONAL_SETTINGS", True),
-    "Империо":([],0.05, "NO_ADDITIONAL_SETTINGS", True),
-    "Алохомора":([],0.05, "NO_ADDITIONAL_SETTINGS", True)
+    "Империо":([],0.05, "NO_ADDITIONAL_SETTINGS", True)
 }
