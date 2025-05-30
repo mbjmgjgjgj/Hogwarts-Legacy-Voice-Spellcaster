@@ -340,6 +340,7 @@ Logger.log_success(message=f"Скрипт инициализирован усп�
 start_time = time.time()
 while True:
     if LISTEN_USER:
+        start_regontition = time.time()
         recording_start_time = None
         if push_to_talk_button_pressed:
             if recording_start_time is None:
@@ -356,14 +357,16 @@ while True:
 
                     spell, confidence = predict_spell(result['text'])
                     if float(confidence) < MIN_CONFIDENCE:
-                        Logger.log_error(f"Распознано: ${result['text']}$. SPELL: $Nothing$ (вероятность ${round(float(confidence)*100, 2)}%$ (могло быть ${spell}$))")
+                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        Logger.log_error(f"[{execution_time} sec] Распознано: ${result['text']}$. SPELL: $Nothing$ (вероятность ${round(float(confidence)*100, 2)}%$ (могло быть ${spell}$))")
                         if float(confidence) > FAIL_CONFIDENCE_SOUND and SOUND_EFFECTS:
                             play_random_sound_in_thread(sounds_folder=SOUNDS_CONFIG["ERRORS_SOUNDS"]["sounds_folder"], stats_file=SOUNDS_CONFIG["ERRORS_SOUNDS"]["stats_file"])
                         if PUSH_TO_TALK:
                             push_to_talk_button_pressed = False
                         rec.Reset()
                     else:
-                        Logger.log_success(f"Распознано: ${result['text']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
+                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        Logger.log_success(f"[{execution_time} sec] Распознано: ${result['text']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
                         shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                         with open(PHRASES_LOG_FILE, "r", encoding="UTF-8") as file:
                             tmp_list = [item.split(" --> ")[1] for item in file.read().split("\n") if item]
@@ -393,7 +396,8 @@ while True:
                     if USE_NE_MODEL:
                         spell = check_before_ML(text=partial_json['partial'])
                     if spell:
-                        Logger.log_success(f"Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$ - Подбор по словам")
+                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        Logger.log_success(f"[{execution_time} sec] Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$ - Подбор по словам")
                         shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                         rec.Reset()
                         recording_start_time = None
@@ -402,7 +406,8 @@ while True:
                     else:
                         spell, confidence = predict_spell(partial_json['partial'])
                         if float(confidence) > MIN_PARTITIAL_CONFIDENCE:
-                            Logger.log_success(f"Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
+                            execution_time = f"{time.time() - start_regontition:.2f}"
+                            Logger.log_success(f"[{execution_time} sec] Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
                             shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                             rec.Reset()
                             recording_start_time = None
