@@ -204,7 +204,7 @@ def check_before_ML(text):
     for spell in MANUAL_NE_MODEL:
         if text in MANUAL_NE_MODEL[spell]:
             return spell
-    return None
+    return ""
 
 def monitor_button_OFF(): # Keyboard
     global LISTEN_USER
@@ -221,8 +221,6 @@ def monitor_button_OFF(): # Keyboard
 
 def monitor_gamepad():
     global push_to_talk_button_pressed
-    global start_time
-    start_time = time.time()
     ButtonCode = "BTN_TR" # По умолчанию
     if PUSH_TO_TALK_BUTTON == "LT":
         ButtonCode = "ABS_Z"
@@ -337,17 +335,15 @@ if OFF_BUTTON:
 
 LISTEN_USER = True
 Logger.log_success(message=f"Скрипт инициализирован успешно")
-start_time = time.time()
+# execution_time = f"{time.time() - start_regontition_time:.2f}"
+iteration_started_flag = False
 while True:
     if LISTEN_USER:
-        start_regontition = time.time()
-        recording_start_time = None
         if push_to_talk_button_pressed:
-            if recording_start_time is None:
-                recording_start_time = time.time()
             data = stream.read(FRAMES_PER_BUFFER, exception_on_overflow=False)
 
-            if rec.AcceptWaveform(data):
+            # Итоговый результат
+            if rec.AcceptWaveform(data): 
                 result = json.loads(rec.Result())
                 if len(result['text']) > 0:
                     if result['text'] in FORBIDDEN_WORDS:
@@ -357,7 +353,10 @@ while True:
 
                     spell, confidence = predict_spell(result['text'])
                     if float(confidence) < MIN_CONFIDENCE:
-                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        if iteration_started_flag:
+                            execution_time = f"{time.time() - iteration_start_time:.2f}"
+                            iteration_started_flag = False
+
                         Logger.log_error(f"[{execution_time} sec] Распознано: ${result['text']}$. SPELL: $Nothing$ (вероятность ${round(float(confidence)*100, 2)}%$ (могло быть ${spell}$))")
                         if float(confidence) > FAIL_CONFIDENCE_SOUND and SOUND_EFFECTS:
                             play_random_sound_in_thread(sounds_folder=SOUNDS_CONFIG["ERRORS_SOUNDS"]["sounds_folder"], stats_file=SOUNDS_CONFIG["ERRORS_SOUNDS"]["stats_file"])
@@ -365,7 +364,10 @@ while True:
                             push_to_talk_button_pressed = False
                         rec.Reset()
                     else:
-                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        if iteration_started_flag:
+                            execution_time = f"{time.time() - iteration_start_time:.2f}"
+                            iteration_started_flag = False
+
                         Logger.log_success(f"[{execution_time} sec] Распознано: ${result['text']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
                         shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                         with open(PHRASES_LOG_FILE, "r", encoding="UTF-8") as file:
@@ -374,42 +376,47 @@ while True:
                             if not result['text'] in tmp_list:
                                 file.write(f"{spell} --> {result['text']} --> {round(float(confidence)*100, 2)}%\n")
                         rec.Reset()
-                        recording_start_time = None
                         if PUSH_TO_TALK:
                             push_to_talk_button_pressed = False
-            else:
-                if time.time() - recording_start_time > 2.0:
-                    Logger.log_error(f"Превышено время ожидания в $2 секунды$, сброс")
-                    rec.Reset()
-                    recording_start_time = None
-                    if PUSH_TO_TALK:
-                        push_to_talk_button_pressed = False
-                    continue
-                partial_result = rec.PartialResult()
+
+            # Частичный результат  
+            else:   
+                partial_result = rec.PartialResult() 
                 partial_json = json.loads(partial_result)
-                if len(partial_json['partial'].split(" ")) > 3:
-                    rec.Reset()
-                    recording_start_time = None
+                # if len(partial_json['partial'].split(" ")) > 4:
+                #     rec.Reset()
                 if len(partial_json['partial']) > 0:
-                    # print(f"Частичный результат: {partial_json['partial']}")
-                    spell = False
+                    #print(f"Частичный результат: {partial_json['partial']}")
+                    if not iteration_started_flag:
+                        iteration_started_flag = True
+                        iteration_start_time = time.time()
+                    spell = ""
                     if USE_NE_MODEL:
                         spell = check_before_ML(text=partial_json['partial'])
+
                     if spell:
-                        execution_time = f"{time.time() - start_regontition:.2f}"
+                        if len(spell.split(" ")) > 1:
+                            continue
+                        if iteration_started_flag:
+                            execution_time = f"{time.time() - iteration_start_time:.2f}"
+                            iteration_started_flag = False
+                        
                         Logger.log_success(f"[{execution_time} sec] Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$ - Подбор по словам")
                         shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                         rec.Reset()
-                        recording_start_time = None
                         if PUSH_TO_TALK:
                             push_to_talk_button_pressed = False
                     else:
                         spell, confidence = predict_spell(partial_json['partial'])
                         if float(confidence) > MIN_PARTITIAL_CONFIDENCE:
-                            execution_time = f"{time.time() - start_regontition:.2f}"
+                            if len(spell.split(" ")) > 1:
+                                continue
+                            if iteration_started_flag:
+                                execution_time = f"{time.time() - iteration_start_time:.2f}"
+                                iteration_started_flag = False
+                            
                             Logger.log_success(f"[{execution_time} sec] Частично распознано: ${partial_json['partial']}$. SPELL: ${spell}$, вероятность ${round(float(confidence)*100, 2)}%$")
                             shoot_spell(buttons=SPELLS_KEYS[spell][0], delay=SPELLS_KEYS[spell][1], AdditionalSettings=SPELLS_KEYS[spell][2], spell_name=spell, spell_active=SPELLS_KEYS[spell][3])
                             rec.Reset()
-                            recording_start_time = None
                             if PUSH_TO_TALK:
                                 push_to_talk_button_pressed = False
